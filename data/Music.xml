@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<MusicData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <dataName>music011686</dataName>
+  <netOpenName>
+    <id>240229</id>
+    <str>Net240229</str>
+  </netOpenName>
+  <releaseTagName>
+    <id>4001</id>
+    <str>Ver1.40.00</str>
+  </releaseTagName>
+  <disable>false</disable>
+  <name>
+    <id>11686</id>
+    <str>Λzure Vixen</str>
+  </name>
+  <rightsInfoName>
+    <id>0</id>
+    <str />
+  </rightsInfoName>
+  <sortName>AZUREVIXEN</sortName>
+  <artistName>
+    <id>759</id>
+    <str>かめりあ</str>
+  </artistName>
+  <genreName>
+    <id>106</id>
+    <str>オンゲキCHUNITHM</str>
+  </genreName>
+  <bpm>163</bpm>
+  <version>24004</version>
+  <AddVersion>
+    <id>21</id>
+    <str>BUDDiES</str>
+  </AddVersion>
+  <movieName>
+    <id>1686</id>
+    <str>Λzure Vixen</str>
+  </movieName>
+  <cueName>
+    <id>1686</id>
+    <str>Λzure Vixen</str>
+  </cueName>
+  <dresscode>false</dresscode>
+  <eventName>
+    <id>24022921</id>
+    <str>240229_02_1：デフォルト楽曲 2曲解禁《KoP5th決勝曲》</str>
+  </eventName>
+  <eventName2>
+    <id>0</id>
+    <str>解放なし</str>
+  </eventName2>
+  <subEventName>
+    <id>0</id>
+    <str>解放なし</str>
+  </subEventName>
+  <lockType>0</lockType>
+  <subLockType>0</subLockType>
+  <dotNetListView>true</dotNetListView>
+  <notesData>
+    <Notes>
+      <file>
+        <path>011686_00.ma2</path>
+      </file>
+      <level>6</level>
+      <levelDecimal>0</levelDecimal>
+      <notesDesigner>
+        <id>0</id>
+        <str />
+      </notesDesigner>
+      <notesType>0</notesType>
+      <musicLevelID>6</musicLevelID>
+      <maxNotes>284</maxNotes>
+      <isEnable>true</isEnable>
+    </Notes>
+    <Notes>
+      <file>
+        <path>011686_01.ma2</path>
+      </file>
+      <level>8</level>
+      <levelDecimal>0</levelDecimal>
+      <notesDesigner>
+        <id>0</id>
+        <str />
+      </notesDesigner>
+      <notesType>0</notesType>
+      <musicLevelID>9</musicLevelID>
+      <maxNotes>400</maxNotes>
+      <isEnable>true</isEnable>
+    </Notes>
+    <Notes>
+      <file>
+        <path>011686_02.ma2</path>
+      </file>
+      <level>13</level>
+      <levelDecimal>2</levelDecimal>
+      <notesDesigner>
+        <id>6</id>
+        <str>ロシェ@ペンギン</str>
+      </notesDesigner>
+      <notesType>0</notesType>
+      <musicLevelID>19</musicLevelID>
+      <maxNotes>739</maxNotes>
+      <isEnable>true</isEnable>
+    </Notes>
+    <Notes>
+      <file>
+        <path>011686_03.ma2</path>
+      </file>
+      <level>14</level>
+      <levelDecimal>7</levelDecimal>
+      <notesDesigner>
+        <id>146</id>
+        <str>BELiZHEL</str>
+      </notesDesigner>
+      <notesType>0</notesType>
+      <musicLevelID>22</musicLevelID>
+      <maxNotes>1289</maxNotes>
+      <isEnable>true</isEnable>
+    </Notes>
+    <Notes>
+      <file>
+        <path>011686_04.ma2</path>
+      </file>
+      <level>0</level>
+      <levelDecimal>0</levelDecimal>
+      <notesDesigner>
+        <id>0</id>
+        <str />
+      </notesDesigner>
+      <notesType>0</notesType>
+      <musicLevelID>0</musicLevelID>
+      <maxNotes>0</maxNotes>
+      <isEnable>false</isEnable>
+    </Notes>
+    <Notes>
+      <file>
+        <path>011686_05.ma2</path>
+      </file>
+      <level>0</level>
+      <levelDecimal>0</levelDecimal>
+      <notesDesigner>
+        <id>0</id>
+        <str />
+      </notesDesigner>
+      <notesType>0</notesType>
+      <musicLevelID>0</musicLevelID>
+      <maxNotes>0</maxNotes>
+      <isEnable>false</isEnable>
+    </Notes>
+  </notesData>
+  <utageKanjiName />
+  <comment />
+  <utagePlayStyle>0</utagePlayStyle>
+  <fixedOptions>
+    <FixedOption>
+      <_fixedOptionName />
+      <_fixedOptionValue />
+    </FixedOption>
+    <FixedOption>
+      <_fixedOptionName />
+      <_fixedOptionValue />
+    </FixedOption>
+    <FixedOption>
+      <_fixedOptionName />
+      <_fixedOptionValue />
+    </FixedOption>
+    <FixedOption>
+      <_fixedOptionName />
+      <_fixedOptionValue />
+    </FixedOption>
+  </fixedOptions>
+  <jacketFile />
+  <thumbnailName />
+  <rightFile />
+  <priority>0</priority>
+</MusicData>
