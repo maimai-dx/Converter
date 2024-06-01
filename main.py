@@ -33,6 +33,73 @@ def recursive_string_replace(obj, old, new):
     return obj
 
 
+def replace_value(obj, target, replacement, visited=None):
+    if visited is None:
+        visited = set()
+
+    # Prevent infinite recursion on circular references
+    if id(obj) in visited:
+        return
+
+    visited.add(id(obj))
+    if isinstance(obj, dict):
+        entries = []
+        for key, value in obj.items():
+            if isinstance(value, type(target)) and target == value:
+                entries.append((key, key, replacement))
+            if isinstance(key, type(target)) and target == key:
+                entries.append((key, replacement, obj[key]))
+
+            replace_value(value, target, replacement, visited)
+            replace_value(key, target, replacement, visited)
+        for (prev_key, key, value) in entries:
+            del obj[prev_key]
+            obj[key] = value
+
+    elif isinstance(obj, list):
+        for index, item in enumerate(obj):
+            if isinstance(item, type(target)) and target == item:
+                obj[index] = replacement
+
+            replace_value(item, target, replacement, visited)
+    elif isinstance(obj, tuple):
+        new_tuple = []
+        for index, item in enumerate(obj):
+            if isinstance(item, type(target)) and target == item:
+                print('튜플이다 시발놈아')
+
+                new_tuple.append(replacement)
+            else:
+                new_tuple.append(item)
+            replace_value(item, target, replacement, visited)
+        obj = tuple(new_tuple)
+    elif isinstance(obj, set):
+        new_set = set()
+        for item in obj:
+            if isinstance(item, type(target)) and target == item:
+                new_set.add(target)
+            else:
+                new_set.add(item)
+            replace_value(item, target, replacement, visited)
+        obj.clear()
+        obj.update(new_set)
+    elif isinstance(obj, str):
+        pass
+    else:
+        for attribute_name in dir(obj):
+            if attribute_name.startswith('__') and attribute_name.endswith('__'):
+                continue
+
+            attribute_value = getattr(obj, attribute_name)
+            if isinstance(attribute_value, type(target)) and target == attribute_value:
+                try:
+                    setattr(obj, attribute_name, replacement)
+                except:
+                    pass
+
+            replace_value(attribute_value, target, replacement, visited)
+
+
 def find_path(directory: str, extensions: list):
     for file in Path(directory).rglob('*'):
         if file.suffix.lower() in extensions:
@@ -41,24 +108,68 @@ def find_path(directory: str, extensions: list):
 
 
 def convert_jacket(in_path: str, out_path: str, music_id: str, skip_if_converted: bool = True):
-    for jacket_sub_name in ['', '_s']:
-        result_path = f'{out_path}/AssetBundleImages/jacket{jacket_sub_name}/ui_jacket_{music_id}{jacket_sub_name}.ab'
+    for sub_name in ['', '_s']:
+        result_path = f'{out_path}/AssetBundleImages/jacket{sub_name}/ui_jacket_{music_id}{sub_name}.ab'
         if skip_if_converted and os.path.exists(result_path):
             continue
 
-        env = UnityPy.load(f'./data/ui_jacket_001686{jacket_sub_name}.ab')
+        if sub_name == '_s':
+            new_m_path_id = int(music_id) + 10000000
+            m_path_id_1 = -630615454984241609
+            m_path_id_2 = -9068764124424944558
+            cab_hash = '72f38b5f3114e28901b11d48eb6d85e6'
+            new_cab_hash = f'{new_m_path_id}'
+        else:
+            new_m_path_id = int(music_id)
+            m_path_id_1 = 739899962197238906
+            m_path_id_2 = -1066836184272249663
+            cab_hash = '86ca849a3b53af73406c67412dda69d5'
+            new_cab_hash = f'{new_m_path_id}'
+
+        env = UnityPy.load(f'./data/ui_jacket_001686{sub_name}.ab')
         for obj in env.objects:
-            if obj.type.name == 'Texture2D':
-                data = obj.read()
-                image_path = find_path(in_path, ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.svg'])
-                data.image = Image.open(image_path).resize(data.image.size).convert('RGB').convert('RGBA')
-                data.save()
+            print(obj.type.name)
 
             tree = obj.read_typetree()
-            recursive_string_replace(tree, f'_001686', f'_{music_id}')
+            recursive_string_replace(tree, '_001686', f'_{music_id}')
+
+            # if obj.type.name == 'Sprite':
+            #     tree['m_RenderDataKey']['first']['data[0]'] = new_m_path_id
+            #     tree['m_RenderDataKey']['first']['data[1]'] = new_m_path_id
+            #     tree['m_RenderDataKey']['first']['data[2]'] = new_m_path_id
+            #     tree['m_RenderDataKey']['first']['data[3]'] = new_m_path_id
+            #     tree['m_RD']['texture']['m_PathID'] = new_m_path_id
+
+            # if obj.type.name == 'AssetBundle':
+            #     tree['m_PreloadTable'][0]['m_PathID'] = -new_m_path_id
+            #     tree['m_Container'][1][1]['asset']['m_PathID'] = -new_m_path_id
+            #     tree['m_PreloadTable'][1]['m_PathID'] = new_m_path_id
+            #     tree['m_Container'][0][1]['asset']['m_PathID'] = new_m_path_id
+
+            if obj.type.name == 'Texture2D':
+                tree['m_StreamData']['path'] = f'archive:/CAB-{new_cab_hash}/CAB-{new_cab_hash}.resS'
+
             obj.save_typetree(tree)
 
-        os.makedirs(f'{out_path}/AssetBundleImages/jacket{jacket_sub_name}', exist_ok=True)
+        # replace_value(env, m_path_id_1, new_m_path_id)
+        # replace_value(env, m_path_id_2, -new_m_path_id)
+
+        env.file.name = env.file.name.replace('_001686', f'_{music_id}')
+
+        key = next(iter(env.file.container))
+        env.file.container[key.replace('_001686', f'_{music_id}')] = env.file.container[key]
+        del env.file.container[key]
+
+        # CAB-##
+        env.file.files[f'CAB-{new_cab_hash}'] = env.file.files[f'CAB-{cab_hash}']
+        env.file.files[f'CAB-{new_cab_hash}'].assetbundle.m_Name = env.file.files[
+            f'CAB-{new_cab_hash}'].assetbundle.m_Name.replace('_001686', f'_{music_id}')
+        del env.file.files[f'CAB-{cab_hash}']
+
+        env.file.files[f'CAB-{new_cab_hash}.resS'] = env.file.files[f'CAB-{cab_hash}.resS']
+        del env.file.files[f'CAB-{cab_hash}.resS']
+
+        os.makedirs(f'{out_path}/AssetBundleImages/jacket{sub_name}', exist_ok=True)
 
         with open(result_path, 'wb') as f:
             f.write(env.file.save())
@@ -251,7 +362,7 @@ def convert_chart_and_metadata(in_path: str, out_path: str, music_id: str, is_fe
 
 def convert(in_path: str, out_path: str, music_id: str, skip_if_converted: bool = False):
     os.makedirs(f'{out_path}/tmp_{music_id}', exist_ok=True)
-    convert_jacket(in_path, out_path, music_id, skip_if_converted)
+    convert_jacket(in_path, out_path, music_id, skip_if_converted=False)
     convert_movie(in_path, out_path, music_id, skip_if_converted)
     convert_music(in_path, out_path, music_id, skip_if_converted)
     convert_chart_and_metadata(in_path, out_path, music_id, is_festival=True, offset=0)
@@ -281,31 +392,4 @@ if __name__ == '__main__':
             results.append(result)
             print(f"Task completed. Progress: {len(results)}/{len(tasks)}")
 
-    # with multiprocessing.Pool(processes=) as pool:
-    #     results = []
-    #     for result in pool.imap_unordered(convert, tasks):
-    #         results.append(result)
-    #         print(f"Task completed. Progress: {len(results)}/{len(tasks)}")
-
     print('end')
-
-
-# ,
-# ,
-# ,
-# ,
-# ,
-# ,
-# ,
-# ,
-# ,
-# ,
-# ,
-# ,
-# ,
-# ,
-# ,
-#
-
-# hex
-#
