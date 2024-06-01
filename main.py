@@ -31,6 +31,7 @@ def recursive_string_replace(obj, old, new):
             obj = obj.replace(old, new)
     return obj
 
+
 def find_path(directory: str, extensions: list):
     for file in Path(directory).rglob('*'):
         if file.suffix.lower() in extensions:
@@ -71,8 +72,7 @@ def convert_jacket(in_path: str, out_path: str, music_id: str, skip_if_converted
 
         # CAB-##
         env.file.files[f'CAB-{new_cab_hash}'] = env.file.files[f'CAB-{cab_hash}']
-        env.file.files[f'CAB-{new_cab_hash}'].assetbundle.m_Name = env.file.files[
-            f'CAB-{new_cab_hash}'].assetbundle.m_Name.replace('_001686', f'_{music_id}')
+        env.file.files[f'CAB-{new_cab_hash}'].assetbundle.m_Name = env.file.files[f'CAB-{new_cab_hash}'].assetbundle.m_Name.replace('_001686', f'_{music_id}')
         del env.file.files[f'CAB-{cab_hash}']
 
         env.file.files[f'CAB-{new_cab_hash}.resS'] = env.file.files[f'CAB-{cab_hash}.resS']
@@ -147,7 +147,10 @@ def convert_music(in_path: str, out_path: str, music_id: str, skip_if_converted:
     ffmpeg.run(stream)
     # automatically creates music folder
     os.system(
-        f'.\\CriEncoder\\criatomencd.exe {out_path}/tmp_{music_id}/music.wav {out_path}/tmp_{music_id}/music/00000_streaming.hca -keycode=9170825592834449000')
+        f'.\\CriEncoder\\criatomencd.exe '
+        f'{out_path}/tmp_{music_id}/music.wav {out_path}/tmp_{music_id}/music/00000_streaming.hca '
+        f'-keycode=9170825592834449000'
+    )
     os.system(f'.\\SonicAudioTools\\AcbEditor.exe {out_path}/tmp_{music_id}/music')  # override .acb, .awb
 
     os.makedirs(f'{out_path}/SoundData', exist_ok=True)
@@ -206,8 +209,14 @@ def convert_chart_and_metadata(in_path: str, out_path: str, music_id: str, is_fe
                 leveldecimal = '7'
 
             # 채보 변환 (result.ma2 생성)
+            chart_type = 'Ma2_104' if is_festival else 'Ma2'
             os.system(
-                f'.\\MaichartConverter_Win1071\\MaichartConverter.exe CompileSimai -p "{in_path}/maidata.txt" -f {'Ma2_104' if is_festival else 'Ma2'} -o {out_path}/tmp_{music_id} -d {i + 2}')
+                f'.\\MaichartConverter_Win1071\\MaichartConverter.exe CompileSimai '
+                f'-p "{in_path}/maidata.txt" '
+                f'-f {chart_type} '
+                f'-o {out_path}/tmp_{music_id} '
+                f'-d {i + 2} '
+            )
 
             # offset 미루는 부분
             with open(f'{out_path}/tmp_{music_id}/result.ma2', encoding='utf-8') as f:
@@ -289,7 +298,7 @@ def convert_chart_and_metadata(in_path: str, out_path: str, music_id: str, is_fe
 
 def convert(in_path: str, out_path: str, music_id: str, skip_if_converted: bool = False):
     os.makedirs(f'{out_path}/tmp_{music_id}', exist_ok=True)
-    convert_jacket(in_path, out_path, music_id, skip_if_converted=False)
+    convert_jacket(in_path, out_path, music_id, skip_if_converted)
     convert_movie(in_path, out_path, music_id, skip_if_converted)
     convert_music(in_path, out_path, music_id, skip_if_converted)
     convert_chart_and_metadata(in_path, out_path, music_id, is_festival=True, offset=0)
