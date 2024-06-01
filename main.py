@@ -109,19 +109,33 @@ def convert_movie(in_path: str, out_path: str, music_id: str, skip_if_converted:
     :return:
     """
 
-    movie_path = find_path(in_path, ['.mp4'])
-    if movie_path is None:
-        return
-
     result_path = f'{out_path}/MovieData/{music_id}.dat'
     if skip_if_converted and os.path.exists(result_path):
         return
 
-    temp_ivf_path = f'{out_path}/tmp_{music_id}/{music_id}.ivf'
+    movie_path = find_path(in_path, ['.mp4'])
+    if movie_path is not None:
+        probe = ffmpeg.probe(movie_path)
+        stream = ffmpeg.input(movie_path)
+    else:
+        image_path = find_path(in_path,  ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.svg'])
+        probe = ffmpeg.probe(image_path)
+        stream = ffmpeg.input(image_path, loop=1, t=10/30, framerate=30)
 
-    stream = ffmpeg.input(movie_path)
-    stream = ffmpeg.output(stream, temp_ivf_path, vcodec='vp9').overwrite_output()
-    ffmpeg.run(stream)
+    video_info = next(stream for stream in probe['streams'] if stream['codec_type'] == 'video')
+    width = int(video_info['width'])
+    height = int(video_info['height'])
+
+    # 1:1 비율로 중앙 크롭할 크기 계산
+    crop_size = min(width, height)
+    x_offset = (width - crop_size) // 2
+    y_offset = (height - crop_size) // 2
+
+    temp_ivf_path = f'{out_path}/tmp_{music_id}/{music_id}.ivf'
+    (stream
+        .filter('crop', crop_size, crop_size, x_offset, y_offset)
+        .filter('scale', 1080, 1080)
+        .output(temp_ivf_path, vcodec='vp9', r=30).overwrite_output().run())
 
     with patch.object(sys, 'argv', ['wannacri', 'createusm', temp_ivf_path, '--key', '0x7F4551499DF55E68']):
         create_usm()  # .ivf to .dat 파일 변환됨.
