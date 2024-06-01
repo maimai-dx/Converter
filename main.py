@@ -58,21 +58,44 @@ def get_or_new_id(cache_path: str, name: str, initial_value: int):
     return new_id
 
 
+def get_or_new_genre_id(cache_path: str, name: str):
+    if name == 'POPSアニメ':
+        return 101
+    if name == 'niconicoボーカロイド':
+        return 102
+    if name == '東方Project':
+        return 103
+    if name == 'ゲームバラエティ':
+        return 104
+    if name == 'maimai':
+        return 105
+    if name == 'オンゲキCHUNITHM':
+        return 106
+
+    return get_or_new_id(cache_path, name, 1000)
+
+
 class Chart:
     in_path: str
     out_path: str
+
+    genre_id: int
+    genre_name: str
 
     music_id: str
 
     temp_path: str
     maidata_path: str
 
-    def __init__(self, inputs_path: str, in_path: str, out_path: str):
+    def __init__(self, inputs_path: str, in_path: str, out_path: str, genre_name: str):
         if not os.path.exists(f'{in_path}/maidata.txt'):
             raise FileNotFoundError(f'{in_path}/maidata.txt')
 
         self.in_path = in_path
         self.out_path = out_path
+
+        self.genre_id = '%06d' % get_or_new_genre_id(f'{inputs_path}/genre_id.tsv', genre_name)
+        self.genre_name = genre_name
 
         self.music_id = '%06d' % get_or_new_id(f'{inputs_path}/music_id.tsv', in_path, 2001)
 
@@ -90,8 +113,15 @@ def read_charts(inputs_path: str, out_path: str) -> list:
         if os.path.exists(f'{inputs_path}/{folder_name}/maidata.txt'):
             # it is chart
             in_path = f'{inputs_path}/{folder_name}'
-            charts.append(Chart(inputs_path, in_path, out_path))
+            charts.append(Chart(inputs_path, in_path, out_path, genre_name='maimai'))
             continue
+
+        # it is genre
+        for name in os.listdir(f'{inputs_path}/{folder_name}'):
+            if os.path.exists(f'{inputs_path}/{folder_name}/{name}/maidata.txt'):
+                # it is chart
+                in_path = f'{inputs_path}/{folder_name}/{name}'
+                charts.append(Chart(inputs_path, in_path, out_path, genre_name=folder_name))
 
     return charts
 
@@ -343,7 +373,7 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False, offset: 
     musicxml['MusicData']['name'] = {'id': str(int(chart.music_id)), 'str': title}
     musicxml['MusicData']['sortName'] = f'{chart.music_id}MUSIC'
     musicxml['MusicData']['artistName'] = {'id': '754', 'str': artist}
-    musicxml['MusicData']['genreName'] = {'id': '105', 'str': 'maimai'}
+    musicxml['MusicData']['genreName'] = {'id': chart.genre_id, 'str': chart.genre_name}
     musicxml['MusicData']['eventName']['id'] = '1'
     musicxml['MusicData']['eventName']['str'] = '無期限常時解放'
     musicxml['MusicData']['movieName']['id'] = chart.music_id
@@ -405,12 +435,45 @@ def add_asset_bundle_dependencies(out_path: str, music_ids: list):
 
             obj.save_typetree(tree)
 
-    os.makedirs(f'{out_path}/AssetBundleImages')
+    os.makedirs(f'{out_path}/AssetBundleImages', exist_ok=True)
     with open(f'{out_path}/AssetBundleImages/AssetBundleImages', 'wb') as f:
         f.write(env.file.save())
 
 
-if __name__ == '__main__':
+def add_genres(charts: list):
+    genre_added = set()
+
+    genreSortXml = xmltodict.parse(open('./data/musicGenre/MusicGenreSort.xml', encoding='UTF8').read())
+    for chart in charts:
+        if chart.genre_id in genre_added or int(chart.genre_id) < 1000:
+            continue
+
+        genre_added.add(chart.genre_id)
+        genreSortXml['SerializeSortData']['SortList']['StringID'].append({'id': str(int(chart.genre_id)), 'str': chart.genre_name})
+
+
+        xml = xmltodict.parse(open('./data/musicGenre/musicgenre000001/MusicGenre.xml', encoding='UTF8').read())
+        xml['MusicGenreData']['dataName'] = f'musicgenre{chart.genre_id}'
+        xml['MusicGenreData']['name']['id'] = str(int(chart.genre_id))
+        xml['MusicGenreData']['name']['str'] = chart.genre_name
+        xml['MusicGenreData']['genreName'] = chart.genre_name
+        xml['MusicGenreData']['genreNameTwoLine'] = chart.genre_name
+
+        tree = ElementTree.ElementTree(ElementTree.fromstring(xmltodict.unparse(xml)))
+        ElementTree.indent(tree, space="  ", level=0)
+
+        os.makedirs(f'{chart.out_path}/musicGenre/musicgenre{chart.genre_id}', exist_ok=True)
+        with open(f'{chart.out_path}/musicGenre/musicgenre{chart.genre_id}/MusicGenre.xml', 'wb') as file:
+            tree.write(file, encoding='utf-8', xml_declaration=True)
+
+    if len(genre_added) > 0:
+        tree = ElementTree.ElementTree(ElementTree.fromstring(xmltodict.unparse(genreSortXml)))
+        ElementTree.indent(tree, space="  ", level=0)
+        with open(f'{charts[0].out_path}/musicGenre/musicGenreSort.xml', 'wb') as file:
+            tree.write(file, encoding='utf-8', xml_declaration=True)
+
+
+def main():
     print('start')
 
     param_inputs_path = './inputs'
@@ -419,10 +482,14 @@ if __name__ == '__main__':
     charts = read_charts(param_inputs_path, param_out_path)
 
     add_asset_bundle_dependencies(param_out_path, [chart.music_id for chart in charts])
+    add_genres(charts)
     with ThreadPoolExecutor() as executor:
         results = []
         for result in executor.map(convert, charts):
             results.append(result)
             print(f"Task completed. Progress: {len(results)}/{len(charts)}")
-
     print('end')
+
+
+if __name__ == '__main__':
+    main()

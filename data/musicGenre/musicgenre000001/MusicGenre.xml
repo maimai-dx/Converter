@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<MusicGenreData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <dataName>musicgenre000001</dataName>
+  <name>
+    <id>1</id>
+    <str>新曲</str>
+  </name>
+  <genreName>新曲だよ！</genreName>
+  <genreNameTwoLine>新曲だよ！</genreNameTwoLine>
+  <Color>
+    <R>251</R>
+    <G>96</G>
+    <B>153</B>
+  </Color>
+  <FileName>UI_CMN_TabTitle_NewSong</FileName>
+  <priority>0</priority>
+  <disable>false</disable>
+</MusicGenreData>
