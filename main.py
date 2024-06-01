@@ -12,6 +12,7 @@ from transformer import SimaiTransformer
 import xmltodict
 from xml.etree import ElementTree
 from concurrent.futures import ThreadPoolExecutor
+import pandas as pd
 
 
 def recursive_string_replace(obj, old, new):
@@ -305,7 +306,24 @@ def convert(in_path: str, out_path: str, music_id: str, skip_if_converted: bool 
     shutil.rmtree(f'{out_path}/tmp_{music_id}', ignore_errors=True)
 
 
-# Press the green button in the gutter to run the script.
+def get_or_new_music_id(cache_path: str, music_folder_name: str):
+    if not os.path.exists(cache_path):
+        music_id = 2001
+        df = pd.DataFrame({'musid_id': [music_id], 'music_folder_name': [music_folder_name]})
+        df.to_csv(cache_path, index=False, sep='\t')
+        return music_id
+
+    df = pd.read_csv(cache_path, sep='\t')
+    tmp_df = df[df['music_folder_name'] == music_folder_name]
+    if len(tmp_df) > 0:
+        return tmp_df['musid_id'].iloc[0]
+
+    music_id = int(df['musid_id'].max()) + 1
+    df = pd.concat([df, pd.DataFrame({'musid_id': [music_id], 'music_folder_name': [music_folder_name]})])
+    df.to_csv(cache_path, index=False, sep='\t')
+    return music_id
+
+
 if __name__ == '__main__':
     print('start')
 
@@ -313,14 +331,13 @@ if __name__ == '__main__':
     out_path = './outputs'
 
     tasks = []
-    music_id_numeric = 2001
+    cache_path = f'{inputs_path}/music_id.tsv'
     for name in os.listdir(inputs_path):
         in_path = f'{inputs_path}/{name}'
         if os.path.isdir(in_path):
             # {'in_path': in_path, 'out_path': out_path, 'music_id': '%06d' % music_id, 'skip_if_converted': True}
-            music_id = '%06d' % music_id_numeric
+            music_id = '%06d' % get_or_new_music_id(cache_path, in_path)
             tasks.append((in_path, out_path, music_id, True))
-            music_id_numeric += 1
 
     with ThreadPoolExecutor() as executor:
         results = []
