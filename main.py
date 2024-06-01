@@ -320,6 +320,47 @@ def convert(in_path: str, out_path: str, music_id: str, skip_if_converted: bool 
     shutil.rmtree(f'{out_path}/tmp_{music_id}', ignore_errors=True)
 
 
+def add_asset_bundle_dependencies(out_path: str, music_ids: list):
+    env = UnityPy.load(f'./data/AssetBundleImages')
+    for obj in env.objects:
+        print(obj.type.name)
+        if obj.type.name == 'AssetBundleManifest':
+            tree = obj.read_typetree()
+
+            while len(tree['AssetBundleNames']) < len(tree['AssetBundleInfos']):
+                tree['AssetBundleNames'].append(tree['AssetBundleNames'][0])
+
+            while len(tree['AssetBundleInfos']) < len(tree['AssetBundleNames']):
+                tree['AssetBundleInfos'].append(tree['AssetBundleInfos'][0])
+
+            for music_id in music_ids:
+                tree['AssetBundleNames'].append((len(tree['AssetBundleNames']), f'jacket/ui_jacket_{music_id}.ab'))
+                tree['AssetBundleInfos'].append((len(tree['AssetBundleInfos']), {
+                    'AssetBundleHash': {
+                        'bytes[0]': 0, 'bytes[1]': 0, 'bytes[2]': 0, 'bytes[3]': 0, 'bytes[4]': 0, 'bytes[5]': 0,
+                        'bytes[6]': 0, 'bytes[7]': 0, 'bytes[8]': 0,
+                        'bytes[9]': 0, 'bytes[10]': 0, 'bytes[11]': 0, 'bytes[12]': 0, 'bytes[13]': 0, 'bytes[14]': 0,
+                        'bytes[15]': 0
+                    },
+                    'AssetBundleDependencies': []
+                }))
+                tree['AssetBundleNames'].append((len(tree['AssetBundleNames']), f'jacket_s/ui_jacket_{music_id}_s.ab'))
+                tree['AssetBundleInfos'].append((len(tree['AssetBundleInfos']), {
+                    'AssetBundleHash': {
+                        'bytes[0]': 0, 'bytes[1]': 0, 'bytes[2]': 0, 'bytes[3]': 0, 'bytes[4]': 0, 'bytes[5]': 0,
+                        'bytes[6]': 0, 'bytes[7]': 0, 'bytes[8]': 0,
+                        'bytes[9]': 0, 'bytes[10]': 0, 'bytes[11]': 0, 'bytes[12]': 0, 'bytes[13]': 0, 'bytes[14]': 0,
+                        'bytes[15]': 0
+                    },
+                    'AssetBundleDependencies': []
+                }))
+
+            obj.save_typetree(tree)
+
+    with open(f'{out_path}/AssetBundleImages/AssetBundleImages', 'wb') as f:
+        f.write(env.file.save())
+
+
 def get_or_new_music_id(cache_path: str, music_folder_name: str):
     if not os.path.exists(cache_path):
         music_id = 2001
@@ -353,6 +394,7 @@ if __name__ == '__main__':
             music_id = '%06d' % get_or_new_music_id(cache_path, in_path)
             tasks.append((in_path, out_path, music_id, True))
 
+    add_asset_bundle_dependencies(out_path, [t[2] for t in tasks])
     with ThreadPoolExecutor() as executor:
         results = []
         for result in executor.map(convert, *zip(*tasks)):
