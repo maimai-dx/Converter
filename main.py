@@ -2,7 +2,6 @@ import shutil
 import os
 import sys
 import ffmpeg
-import subprocess
 import UnityPy
 from PIL import Image
 from pathlib import Path
@@ -207,12 +206,6 @@ def convert_chart_and_metadata(in_path: str, out_path: str, music_id: str, is_fe
                 leveldecimal = '7'
 
             # 채보 변환 (result.ma2 생성)
-
-            # subprocess.run(
-            #     f'.\\MaichartConverter_Win1071\\MaichartConverter.exe CompileSimai -p {in_path}/maidata.txt -f {'Ma2_104' if is_festival else 'Ma2'} -o {out_path}/tmp_{music_id} -d {i + 2}',
-            #     # ['.\\MaichartConverter_Win1071\\MaichartConverter.exe', 'CompileSimai', '-p', f'./{in_path}/maidata.txt', '-f', 'Ma2_104' if is_festival else 'Ma2', '-o', f'{out_path}/tmp_{music_id}', 'd', f'{i + 2}'],
-            #     stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True
-            # )
             os.system(
                 f'.\\MaichartConverter_Win1071\\MaichartConverter.exe CompileSimai -p "{in_path}/maidata.txt" -f {'Ma2_104' if is_festival else 'Ma2'} -o {out_path}/tmp_{music_id} -d {i + 2}')
 
@@ -250,6 +243,7 @@ def convert_chart_and_metadata(in_path: str, out_path: str, music_id: str, is_fe
     title = None
     artist = None
     bpm = None
+    chart_first_bpm = None
     for data in metadata:
         if data['type'] == 'artist':
             artist = data['value']
@@ -257,6 +251,13 @@ def convert_chart_and_metadata(in_path: str, out_path: str, music_id: str, is_fe
             title = data['value']
         if data['type'] == 'wholebpm' and int(data['value']) > 10:  # 10 bpm은 넘길 거임.
             bpm = data['value']
+        if data['type'] == 'chart':
+            chart_first_bpm = data['value'][1].split('(')[1].split(')')[0]
+
+    if bpm is None:
+        bpm = chart_first_bpm
+    if bpm is None:
+        bpm = 0
 
     levels = {}
     for data in metadata:
@@ -303,7 +304,7 @@ if __name__ == '__main__':
     out_path = './outputs'
 
     tasks = []
-    music_id_numeric = 2000
+    music_id_numeric = 2001
     for name in os.listdir(inputs_path):
         in_path = f'{inputs_path}/{name}'
         if os.path.isdir(in_path):
