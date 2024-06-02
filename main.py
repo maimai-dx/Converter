@@ -1,6 +1,8 @@
 import shutil
 import os
 import sys
+import traceback
+
 import ffmpeg
 import UnityPy
 from PIL import Image
@@ -254,10 +256,10 @@ def convert_music(chart: Chart, skip_if_converted: bool = True):
 
 
 def convert_chart_and_metadata(chart: Chart, is_festival: bool = False, offset: int = 0):
-    parser = Lark.open('./simai.lark', parser="lalr")
-    metadata = SimaiTransformer().transform(parser.parse(open(f'{chart.in_path}/maidata.txt', encoding='UTF8').read()))
+    shutil.copyfile(f'{chart.in_path}/maidata.txt', f'{chart.temp_path}/maidata.txt')
 
-    os.makedirs(f'{chart.out_path}/music/music{chart.music_id}', exist_ok=True)
+    parser = Lark.open('./simai.lark', parser="lalr")
+    metadata = SimaiTransformer().transform(parser.parse(open(f'{chart.temp_path}/maidata.txt', encoding='UTF8').read()))
 
     level_dict = {
         '1': 1, '2': 2,
@@ -282,65 +284,85 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False, offset: 
 
             levels[data['value'][0] - 2] = level_value
 
+    # about metadata_music_id
+    # 00____ : Standard Chart
+    # 01____ : Deluxe Chart
+    # 10____ : Standard Utage Chart
+    # 11____ : Deluxe Utage Chart
+    # 12____ : Use if there is multiple utage of same song and uses same music file.
+    if 5 in levels:
+        # it contains utage level
+        metadata_music_id = f'11{int(chart.music_id)}'
+    else:
+        metadata_music_id = f'01{int(chart.music_id)}'
+
+    os.makedirs(f'{chart.out_path}/music/music{metadata_music_id}', exist_ok=True)
+
     notes = []
+    # 먼저 빈 채보로 채움
     for i in range(6):
-        if i not in levels:  # 채보 있는놈
-            notes.append({
-                'file': {'path': f'{chart.music_id}_0{i}.ma2'},
-                'level': '0',
-                'levelDecimal': '0',
-                'notesDesigner': {'id': '0', 'str': None},
-                'notesType': '0',
-                'musicLevelID': '0',
-                'maxNotes': '0',
-                'isEnable': 'false'
-            })
-        else:  # 채보 없는놈
-            level = levels[i]
+        notes.append({
+            'file': {'path': f'{metadata_music_id}_0{i}.ma2'},
+            'level': '0',
+            'levelDecimal': '0',
+            'notesDesigner': {'id': '0', 'str': None},
+            'notesType': '0',
+            'musicLevelID': '0',
+            'maxNotes': '0',
+            'isEnable': 'false'
+        })
 
-            leveldecimal = '0'
-            if '+' in level:
-                leveldecimal = '7'
+    for i in range(6):
+        if i not in levels:
+            continue
 
-            # 채보 변환 (result.ma2 생성)
-            chart_type = 'Ma2_104' if is_festival else 'Ma2'
-            os.system(
-                f'.\\MaichartConverter_Win1071\\MaichartConverter.exe CompileSimai '
-                f'-p "{chart.in_path}/maidata.txt" '
-                f'-f {chart_type} '
-                f'-o {chart.temp_path} '
-                f'-d {i + 2} '
-            )
+        level = levels[i]
 
-            # offset 미루는 부분
-            with open(f'{chart.temp_path}/result.ma2', encoding='utf-8') as f:
-                data = f.read()
+        leveldecimal = '0'
+        if '+' in level:
+            leveldecimal = '7'
 
-            data = data.split('\n\n')
-            new_chart = []
-            for line in data[2].split('\n'):
-                line = line.split('\t')
-                total = int(line[1]) * 384 + int(line[2]) + offset
-                line[1] = str(total // 384)
-                line[2] = str(total % 384)
-                new_chart.append('\t'.join(line))
-            data[2] = '\n'.join(new_chart)
-            data = '\n\n'.join(data)
+        # 채보 변환 (result.ma2 생성)
+        chart_type = 'Ma2_104' if is_festival else 'Ma2'
+        os.system(
+            f'.\\MaichartConverter_Win1071\\MaichartConverter.exe CompileSimai '
+            f'-p {chart.temp_path}/maidata.txt '
+            f'-f {chart_type} '
+            f'-o {chart.temp_path} '
+            f'-d {i + 2} '
+        )
 
-            with open(f'{chart.out_path}/music/music{chart.music_id}/{chart.music_id}_0{i}.ma2', 'w', encoding='utf-8') as f:
-                f.write(data)
+        # offset 미루는 부분
+        with open(f'{chart.temp_path}/result.ma2', encoding='utf-8') as f:
+            data = f.read()
 
-            # metadata 작성
-            notes.append({
-                'file': {'path': f'{chart.music_id}_0{i}.ma2'},
-                'level': level.replace('+', ''),
-                'levelDecimal': leveldecimal,
-                'notesDesigner': {'id': '0', 'str': 'NZN'},
-                'notesType': '0',
-                'musicLevelID': str(level_dict[level]),
-                'maxNotes': '0',
-                'isEnable': 'true'
-            })
+        data = data.split('\n\n')
+        new_chart = []
+        for line in data[2].split('\n'):
+            line = line.split('\t')
+            total = int(line[1]) * 384 + int(line[2]) + offset
+            line[1] = str(total // 384)
+            line[2] = str(total % 384)
+            new_chart.append('\t'.join(line))
+        data[2] = '\n'.join(new_chart)
+        data = '\n\n'.join(data)
+
+        difficulty = i if i < 5 else 0
+
+        with open(f'{chart.out_path}/music/music{metadata_music_id}/{metadata_music_id}_0{difficulty}.ma2', 'w', encoding='utf-8') as f:
+            f.write(data)
+
+        # metadata 작성
+        notes[difficulty] = {
+            'file': {'path': f'{metadata_music_id}_0{difficulty}.ma2'},
+            'level': level.replace('+', ''),
+            'levelDecimal': leveldecimal,
+            'notesDesigner': {'id': '0', 'str': 'NZN'},
+            'notesType': '0',
+            'musicLevelID': str(level_dict[level]),
+            'maxNotes': '0',
+            'isEnable': 'true'
+        }
 
     # Music metadata
     title = None
@@ -386,17 +408,21 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False, offset: 
     musicxml = xmltodict.unparse(musicxml)
     tree = ElementTree.ElementTree(ElementTree.fromstring(musicxml))
     ElementTree.indent(tree, space="  ", level=0)
-    with open(f'{chart.out_path}/music/music{chart.music_id}/Music.xml', 'wb') as file:
+    with open(f'{chart.out_path}/music/music{metadata_music_id}/Music.xml', 'wb') as file:
         tree.write(file, encoding='utf-8', xml_declaration=True)
 
 
 def convert(chart: Chart):
-    os.makedirs(chart.temp_path, exist_ok=True)
-    convert_jacket(chart, skip_if_converted=True)
-    convert_movie(chart, skip_if_converted=True)
-    convert_music(chart, skip_if_converted=True)
-    convert_chart_and_metadata(chart, is_festival=True, offset=0)
-    shutil.rmtree(chart.temp_path, ignore_errors=True)
+    try:
+        os.makedirs(chart.temp_path, exist_ok=True)
+        convert_jacket(chart, skip_if_converted=True)
+        convert_movie(chart, skip_if_converted=True)
+        convert_music(chart, skip_if_converted=True)
+        convert_chart_and_metadata(chart, is_festival=True, offset=0)
+        shutil.rmtree(chart.temp_path, ignore_errors=True)
+    except Exception:
+        print(f'conversion failed [{chart.music_id}] : {chart.in_path}')
+        traceback.print_exc()
 
 
 def add_asset_bundle_dependencies(out_path: str, music_ids: list):
