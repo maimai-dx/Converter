@@ -201,8 +201,15 @@ def convert_movie(chart: Chart, skip_if_converted: bool = True):
         stream = ffmpeg.input(movie_path)
     else:
         image_path = find_path(chart.in_path, ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.svg'])
-        probe = ffmpeg.probe(image_path)
-        stream = ffmpeg.input(image_path, loop=1, t=10 / 30, framerate=30)
+        # 이미지 형식 확인
+        with Image.open(image_path) as img:
+            format = img.format
+
+            temp_image_path = f'{chart.temp_path}/bg.{format.lower()}'
+            img.save(temp_image_path)
+
+            probe = ffmpeg.probe(temp_image_path)
+            stream = ffmpeg.input(temp_image_path, loop=1, t=10 / 30, framerate=30)
 
     video_info = next(stream for stream in probe['streams'] if stream['codec_type'] == 'video')
     width = int(video_info['width'])
