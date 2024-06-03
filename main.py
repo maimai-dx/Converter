@@ -9,7 +9,7 @@ from PIL import Image
 from pathlib import Path
 from wannacri.wannacri import create_usm
 from unittest.mock import patch
-from lark import Lark
+from lark import Lark, Tree
 from transformer import SimaiTransformer
 import xmltodict
 from xml.etree import ElementTree
@@ -255,11 +255,12 @@ def convert_music(chart: Chart, skip_if_converted: bool = True):
     shutil.move(f'{chart.temp_path}/music.awb', result_path_awb)
 
 
-def convert_chart_and_metadata(chart: Chart, is_festival: bool = False, offset: int = 0):
+def convert_chart_and_metadata(chart: Chart, is_festival: bool = False):
     shutil.copyfile(f'{chart.in_path}/maidata.txt', f'{chart.temp_path}/maidata.txt')
 
     parser = Lark.open('./simai.lark', parser="lalr")
-    metadata = SimaiTransformer().transform(parser.parse(open(f'{chart.temp_path}/maidata.txt', encoding='UTF8').read()))
+    lark_data = parser.parse(open(f'{chart.temp_path}/maidata.txt', encoding='UTF8').read())
+    metadata = SimaiTransformer().transform(lark_data)
 
     level_dict = {
         '1': 1, '2': 2,
@@ -275,7 +276,26 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False, offset: 
         '14': 21, '14+': 22,
         '15': 23, '15+': 24
     }
+
+    title = None
+    artist = None
+    bpm = None
+    first = 0 # second value
+    for node in lark_data.children:
+        if type(node) is not Tree:
+            continue
+        if node.data == 'artist':
+            artist = str(node.children[0])
+        if node.data == 'title':
+            title = str(node.children[0])
+        if node.data == 'wholebpm':
+            bpm = float(str(node.children[0]))
+        if node.data == 'first':
+            first = float(str(node.children[0]))
+
+
     levels = {}
+    first_bpms = {}
     for data in metadata:
         if data['type'] == 'level':
             level_value = data['value'][1]
@@ -283,6 +303,18 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False, offset: 
                 level_value = '15+'
 
             levels[data['value'][0] - 2] = level_value
+
+        if data['type'] == 'chart':
+            first_bpms[data['value'][0] - 2] = data['value'][1].split('(')[1].split(')')[0]
+
+    for i in range(6, 0, -1):
+        if i in first_bpms:
+            bpm = first_bpms[i]
+            break
+
+    if bpm is None:
+        bpm = '0'
+
 
     # about metadata_music_id
     # 00____ : Standard Chart
@@ -336,6 +368,10 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False, offset: 
         with open(f'{chart.temp_path}/result.ma2', encoding='utf-8') as f:
             data = f.read()
 
+        one_bar_time = 60 / (float(first_bpms[i]) / 4)
+        one_grid_time = one_bar_time / 384
+        offset = round(first / one_grid_time)
+
         data = data.split('\n\n')
         new_chart = []
         for line in data[2].split('\n'):
@@ -364,25 +400,6 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False, offset: 
             'isEnable': 'true'
         }
 
-    # Music metadata
-    title = None
-    artist = None
-    bpm = None
-    chart_first_bpm = None
-    for data in metadata:
-        if data['type'] == 'artist':
-            artist = data['value']
-        if data['type'] == 'title':
-            title = data['value']
-        if data['type'] == 'wholebpm' and int(data['value']) > 10:  # 10 bpm은 넘길 거임.
-            bpm = data['value']
-        if data['type'] == 'chart':
-            chart_first_bpm = data['value'][1].split('(')[1].split(')')[0]
-
-    if bpm is None:
-        bpm = chart_first_bpm
-    if bpm is None:
-        bpm = 0
 
     levels = {}
     for data in metadata:
@@ -418,7 +435,7 @@ def convert(chart: Chart):
         convert_jacket(chart, skip_if_converted=True)
         convert_movie(chart, skip_if_converted=True)
         convert_music(chart, skip_if_converted=True)
-        convert_chart_and_metadata(chart, is_festival=True, offset=0)
+        convert_chart_and_metadata(chart, is_festival=True)
         shutil.rmtree(chart.temp_path, ignore_errors=True)
     except Exception:
         print(f'conversion failed [{chart.music_id}] : {chart.in_path}')
