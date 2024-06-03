@@ -190,7 +190,6 @@ def convert_jacket(chart: Chart, skip_if_converted: bool = True):
 
 
 def convert_movie(chart: Chart, skip_if_converted: bool = True):
-
     result_path = f'{chart.out_path}/MovieData/{chart.music_id}.dat'
     if skip_if_converted and os.path.exists(result_path):
         return
@@ -287,7 +286,8 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False):
     title = None
     artist = None
     bpm = None
-    first = 0 # second value
+    first = 0  # second value
+    charters = {}
     for node in lark_data.children:
         if type(node) is not Tree:
             continue
@@ -299,7 +299,13 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False):
             bpm = float(str(node.children[0]))
         if node.data == 'first':
             first = float(str(node.children[0]))
-
+        if node.data == 'des':
+            if type(node.children[0]) is Tree:
+                if len(node.children[0].children) > 0:
+                    for i in range(6):
+                        charters[i] = str(node.children[0].children[0])
+            else:
+                charters[int(str(node.children[0])) - 2] = str(node.children[1].children[0])
 
     levels = {}
     first_bpms = {}
@@ -321,7 +327,6 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False):
 
     if bpm is None:
         bpm = '0'
-
 
     # about metadata_music_id
     # 00____ : Standard Chart
@@ -392,7 +397,8 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False):
 
         difficulty = i if i < 5 else 0
 
-        with open(f'{chart.out_path}/music/music{metadata_music_id}/{metadata_music_id}_0{difficulty}.ma2', 'w', encoding='utf-8') as f:
+        with open(f'{chart.out_path}/music/music{metadata_music_id}/{metadata_music_id}_0{difficulty}.ma2', 'w',
+                  encoding='utf-8') as f:
             f.write(data)
 
         # metadata 작성
@@ -400,13 +406,12 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False):
             'file': {'path': f'{metadata_music_id}_0{difficulty}.ma2'},
             'level': level.replace('+', ''),
             'levelDecimal': leveldecimal,
-            'notesDesigner': {'id': '0', 'str': 'NZN'},
+            'notesDesigner': ({'id': '0', 'str': charters[i]}) if i in charters else None,
             'notesType': '0',
             'musicLevelID': str(level_dict[level]),
             'maxNotes': '0',
             'isEnable': 'true'
         }
-
 
     levels = {}
     for data in metadata:
