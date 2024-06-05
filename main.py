@@ -9,8 +9,6 @@ from PIL import Image
 from pathlib import Path
 from wannacri.wannacri import create_usm
 from unittest.mock import patch
-from lark import Lark, Tree
-from transformer import SimaiTransformer
 import xmltodict
 from xml.etree import ElementTree
 from concurrent.futures import ThreadPoolExecutor
@@ -272,10 +270,6 @@ def convert_music(chart: Chart, skip_if_converted: bool = True):
 def convert_chart_and_metadata(chart: Chart, is_festival: bool = False):
     shutil.copyfile(f'{chart.in_path}/maidata.txt', f'{chart.temp_path}/maidata.txt')
 
-    parser = Lark.open('./simai.lark', parser="lalr")
-    lark_data = parser.parse(open(f'{chart.temp_path}/maidata.txt', encoding='UTF8').read())
-    metadata = SimaiTransformer().transform(lark_data)
-
     level_dict = {
         '1': 1, '2': 2,
         '3': 3, '4': 4,
@@ -294,39 +288,43 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False):
     title = None
     artist = None
     bpm = None
-    first = 0  # second value
+    first = 0
     charters = {}
-    for node in lark_data.children:
-        if type(node) is not Tree:
-            continue
-        if node.data == 'artist':
-            artist = str(node.children[0])
-        if node.data == 'title':
-            title = str(node.children[0])
-        if node.data == 'wholebpm':
-            bpm = float(str(node.children[0]))
-        if node.data == 'first':
-            first = float(str(node.children[0]))
-        if node.data == 'des':
-            if type(node.children[0]) is Tree:
-                if len(node.children[0].children) > 0:
-                    for i in range(6):
-                        charters[i] = str(node.children[0].children[0])
-            else:
-                charters[int(str(node.children[0])) - 2] = str(node.children[1].children[0])
-
     levels = {}
     first_bpms = {}
-    for data in metadata:
-        if data['type'] == 'level':
-            level_value = data['value'][1]
-            if level_value not in level_dict:
-                level_value = '15+'
 
-            levels[data['value'][0] - 2] = level_value
+    txt_data = open(f'{chart.temp_path}/maidata.txt', encoding='UTF8').read()
+    for data in txt_data.split('&'):
+        data = data.removesuffix('\n').strip()
+        index = data.find('=')
+        if index == -1:
+            continue
+        key = data[:index]
+        value = data[index + 1:]
 
-        if data['type'] == 'chart':
-            first_bpms[data['value'][0] - 2] = data['value'][1].split('(')[1].split(')')[0]
+        if key == 'artist':
+            artist = value
+        if key == 'title':
+            title = value
+        if key == 'wholebpm':  # 10 bpm은 넘길 거임.
+            bpm = float(value)
+        if key == 'first':
+            first = float(value)
+        if key.startswith('des') and value != '':
+            index = key.find('_')
+            if index == -1:
+                for i in range(6):
+                    charters[i] = str(value)
+            else:
+                charters[int(key[index + 1:]) - 2] = str(value)
+        if key.startswith('lv') and value != '':
+            index = key.find('_')
+            if index != -1:
+                levels[int(key[index + 1:]) - 2] = value if value in level_dict else '15+'
+        if key.startswith('inote') and value != '':
+            index = key.find('_')
+            if index != -1:
+                first_bpms[int(key[index + 1:]) - 2] = value.split('(')[1].split(')')[0]
 
     for i in range(6, 0, -1):
         if i in first_bpms:
@@ -420,11 +418,6 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False):
             'maxNotes': '0',
             'isEnable': 'true'
         }
-
-    levels = {}
-    for data in metadata:
-        if data['type'] == 'level':
-            levels[data['value'][0] - 2] = data['value'][1]
 
     musicxml = xmltodict.parse(open('./data/Music.xml', encoding='UTF8').read())
 
