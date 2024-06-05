@@ -42,6 +42,14 @@ def find_path(directory: str, extensions: list):
     return None
 
 
+def write_xml(tree: ElementTree, path: str):
+    tree.getroot().set('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance')
+    tree.getroot().set('xmlns:xsd', 'http://www.w3.org/2001/XMLSchema')
+    xml_str = '<?xml version="1.0" encoding="UTF-8"?>\n'.encode() + ElementTree.tostring(tree.getroot(), method='xml', encoding='UTF-8')
+    with open(path, 'wb') as xml_file:
+        xml_file.write(xml_str)
+
+
 def get_or_new_id(cache_path: str, name: str, initial_value: int):
     if not os.path.exists(cache_path):
         new_id = initial_value
@@ -437,12 +445,12 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False):
     musicxml = xmltodict.unparse(musicxml)
     tree = ElementTree.ElementTree(ElementTree.fromstring(musicxml))
     ElementTree.indent(tree, space="  ", level=0)
-    with open(f'{chart.out_path}/music/music{metadata_music_id}/Music.xml', 'wb') as file:
-        tree.write(file, encoding='utf-8', xml_declaration=True)
+    write_xml(tree, f'{chart.out_path}/music/music{metadata_music_id}/Music.xml')
 
 
 def convert(chart: Chart):
     try:
+        shutil.rmtree(chart.temp_path, ignore_errors=True)
         os.makedirs(chart.temp_path, exist_ok=True)
         convert_jacket(chart, skip_if_converted=True)
         convert_movie(chart, skip_if_converted=True)
@@ -518,14 +526,12 @@ def add_genres(charts: list):
         ElementTree.indent(tree, space="  ", level=0)
 
         os.makedirs(f'{chart.out_path}/musicGenre/musicgenre{chart.genre_id}', exist_ok=True)
-        with open(f'{chart.out_path}/musicGenre/musicgenre{chart.genre_id}/MusicGenre.xml', 'wb') as file:
-            tree.write(file, encoding='utf-8', xml_declaration=True)
+        write_xml(tree, f'{chart.out_path}/musicGenre/musicgenre{chart.genre_id}/MusicGenre.xml')
 
     if len(genre_added) > 0:
         tree = ElementTree.ElementTree(ElementTree.fromstring(xmltodict.unparse(genreSortXml)))
         ElementTree.indent(tree, space="  ", level=0)
-        with open(f'{charts[0].out_path}/musicGenre/musicGenreSort.xml', 'wb') as file:
-            tree.write(file, encoding='utf-8', xml_declaration=True)
+        write_xml(tree, f'{charts[0].out_path}/musicGenre/musicGenreSort.xml')
 
 
 def main():
