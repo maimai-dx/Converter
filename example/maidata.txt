@@ -3,6 +3,9 @@
 &wholebpm=190
 &lv_7=宴
 &first=0.21
+&des=
+&des_4=Jack
+&des_5=Luxizhel
 
 &inote_7=(190.0){2},,3h[2:7],4,
 4h[1:2],5,
