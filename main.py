@@ -307,7 +307,7 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False):
         if key == 'title':
             title = value
         if key == 'wholebpm':  # 10 bpm은 넘길 거임.
-            bpm = float(value)
+            bpm = value
         if key == 'first':
             first = float(value)
         if key.startswith('des') and value != '':
@@ -421,9 +421,9 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False):
 
     musicxml = xmltodict.parse(open('./data/Music.xml', encoding='UTF8').read())
 
-    musicxml['MusicData']['dataName'] = f'music{chart.music_id}'
-    musicxml['MusicData']['name'] = {'id': str(int(chart.music_id)), 'str': title}
-    musicxml['MusicData']['sortName'] = f'{chart.music_id}MUSIC'
+    musicxml['MusicData']['dataName'] = f'music{metadata_music_id}'
+    musicxml['MusicData']['name'] = {'id': str(int(metadata_music_id)), 'str': title}
+    musicxml['MusicData']['sortName'] = f'{metadata_music_id}MUSIC'
     musicxml['MusicData']['artistName'] = {'id': '754', 'str': artist}
     musicxml['MusicData']['genreName'] = {'id': chart.genre_id, 'str': chart.genre_name}
     musicxml['MusicData']['eventName']['id'] = '1'
@@ -432,7 +432,7 @@ def convert_chart_and_metadata(chart: Chart, is_festival: bool = False):
     musicxml['MusicData']['movieName']['str'] = title
     musicxml['MusicData']['cueName']['id'] = chart.music_id
     musicxml['MusicData']['cueName']['str'] = title
-    musicxml['MusicData']['bpm'] = bpm
+    musicxml['MusicData']['bpm'] = str(int(float(bpm)))
     musicxml['MusicData']['notesData']['Notes'] = notes
 
     musicxml = xmltodict.unparse(musicxml)
