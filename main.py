@@ -124,12 +124,20 @@ def read_charts(inputs_path: str, out_path: str) -> list:
             charts.append(Chart(inputs_path, in_path, out_path, genre_name='maimai'))
             continue
 
-        # it is genre
-        for name in os.listdir(f'{inputs_path}/{folder_name}'):
-            if os.path.exists(f'{inputs_path}/{folder_name}/{name}/maidata.txt'):
-                # it is chart
-                in_path = f'{inputs_path}/{folder_name}/{name}'
-                charts.append(Chart(inputs_path, in_path, out_path, genre_name=folder_name))
+        # it is genre, use stack for iterative deep traversal
+        stack = [f'{inputs_path}/{folder_name}']
+        while stack:
+            current_path = stack.pop()
+            for name in os.listdir(current_path):
+                sub_path = f'{current_path}/{name}'
+                if os.path.isdir(sub_path):
+                    if os.path.exists(f'{sub_path}/maidata.txt'):
+                        # it is chart
+                        charts.append(Chart(inputs_path, sub_path, out_path, genre_name=folder_name))
+                    else:
+                        # Push the subdirectory onto the stack
+                        stack.append(sub_path)
+
 
     return charts
 
