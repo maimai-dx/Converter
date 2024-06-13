@@ -44,7 +44,8 @@ def find_path(directory: str, extensions: list):
 def write_xml(tree: ElementTree, path: str):
     tree.getroot().set('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance')
     tree.getroot().set('xmlns:xsd', 'http://www.w3.org/2001/XMLSchema')
-    xml_str = '<?xml version="1.0" encoding="UTF-8"?>\n'.encode() + ElementTree.tostring(tree.getroot(), method='xml', encoding='UTF-8')
+    xml_str = '<?xml version="1.0" encoding="UTF-8"?>\n'.encode() + ElementTree.tostring(tree.getroot(), method='xml',
+                                                                                         encoding='UTF-8')
     with open(path, 'wb') as xml_file:
         xml_file.write(xml_str)
 
@@ -138,7 +139,6 @@ def read_charts(inputs_path: str, out_path: str) -> list:
                     else:
                         # Push the subdirectory onto the stack
                         stack.append(sub_path)
-
 
     return charts
 
@@ -270,7 +270,7 @@ def convert_music(chart: Chart, skip_if_converted: bool = True):
         f'CriEncoder\\criatomencd.exe '
         f'{chart.temp_path}/music.wav {chart.temp_path}/music/00000_streaming.hca '
         f'-keycode=9170825592834449000'
-    ], creationflags=0x08000000) # run with CREATE_NO_WINDOW
+    ], creationflags=0x08000000)  # run with CREATE_NO_WINDOW
     os.system(f'.\\SonicAudioTools\\AcbEditor.exe {chart.temp_path}/music')  # override .acb, .awb
 
     os.makedirs(f'{chart.out_path}/SoundData', exist_ok=True)
@@ -516,8 +516,8 @@ def add_genres(charts: list):
             continue
 
         genre_added.add(chart.genre_id)
-        genreSortXml['SerializeSortData']['SortList']['StringID'].append({'id': str(int(chart.genre_id)), 'str': chart.genre_name})
-
+        genreSortXml['SerializeSortData']['SortList']['StringID'].append(
+            {'id': str(int(chart.genre_id)), 'str': chart.genre_name})
 
         xml = xmltodict.parse(open('./data/musicGenre/musicgenre000001/MusicGenre.xml', encoding='UTF8').read())
         xml['MusicGenreData']['dataName'] = f'musicgenre{chart.genre_id}'
