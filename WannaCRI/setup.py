@@ -5,6 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="WannaCRI",
+    version="0.3.0.1",
     description="Criware media formats library",
     long_description=long_description,
     long_description_content_type="text/markdown",
