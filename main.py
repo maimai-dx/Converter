@@ -105,7 +105,7 @@ class Chart:
         self.genre_id = '%06d' % get_or_new_genre_id(f'{inputs_path}/genre_id.tsv', genre_name)
         self.genre_name = genre_name
 
-        self.music_id = '%06d' % get_or_new_id(f'{inputs_path}/music_id.tsv', in_path, 2001)
+        self.music_id = '%06d' % get_or_new_id(f'{inputs_path}/music_id.tsv', in_path, 5000)
 
         self.temp_path = f'{out_path}/tmp_{self.music_id}'
         self.maidata_path = f'{out_path}/maidata.txt'
