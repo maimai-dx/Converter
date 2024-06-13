@@ -2,6 +2,7 @@ import shutil
 import os
 import sys
 import traceback
+import subprocess
 
 import ffmpeg
 import UnityPy
@@ -265,11 +266,11 @@ def convert_music(chart: Chart, skip_if_converted: bool = True):
     stream = ffmpeg.output(stream, f'{chart.temp_path}/music.wav').overwrite_output()
     ffmpeg.run(stream)
     # automatically creates music folder
-    os.system(
-        f'.\\CriEncoder\\criatomencd.exe '
+    subprocess.run([
+        f'CriEncoder\\criatomencd.exe '
         f'{chart.temp_path}/music.wav {chart.temp_path}/music/00000_streaming.hca '
         f'-keycode=9170825592834449000'
-    )
+    ], creationflags=0x08000000) # run with CREATE_NO_WINDOW
     os.system(f'.\\SonicAudioTools\\AcbEditor.exe {chart.temp_path}/music')  # override .acb, .awb
 
     os.makedirs(f'{chart.out_path}/SoundData', exist_ok=True)
