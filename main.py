@@ -234,6 +234,7 @@ def convert_movie(chart: Chart, skip_if_converted: bool = True):
     y_offset = (height - crop_size) // 2
 
     temp_ivf_path = f'{chart.temp_path}/{chart.music_id}.ivf'
+    shutil.rmtree(temp_ivf_path, ignore_errors=True)
     (stream
      .filter('crop', crop_size, crop_size, x_offset, y_offset)
      .filter('scale', 1080, 1080)
@@ -245,7 +246,7 @@ def convert_movie(chart: Chart, skip_if_converted: bool = True):
     os.makedirs(f'{chart.out_path}/MovieData', exist_ok=True)
     shutil.move(f'{chart.temp_path}/{chart.music_id}.dat', result_path)
 
-    os.remove(temp_ivf_path)
+    shutil.rmtree(temp_ivf_path, ignore_errors=True)
 
 
 def convert_music(chart: Chart, skip_if_converted: bool = True):
@@ -257,6 +258,7 @@ def convert_music(chart: Chart, skip_if_converted: bool = True):
 
     shutil.copy('./data/music001686.acb', f'{chart.temp_path}/music.acb')
     shutil.copy('./data/music001686.awb', f'{chart.temp_path}/music.awb')
+    shutil.rmtree(f'{chart.temp_path}/music.wav', ignore_errors=True)
 
     music_path = find_path(chart.in_path, ['.mp3'])
     stream = ffmpeg.input(music_path)
